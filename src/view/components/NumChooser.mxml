@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="200" height="135">
+	<fx:Script>
+		
+		<![CDATA[
+		public static const SEND:String = "SEND";
+			
+		public function init():void{
+			user_tf.text="";
+			refreshNumBtns();
+		}
+			
+		//клик по кнопке "стереть"
+		protected function clear_btn_clickHandler(event:MouseEvent):void
+		{
+			if (user_tf.text!="xxxx"){
+			user_tf.text = user_tf.text.slice(0,user_tf.text.length-1);
+			}else{
+			user_tf.text="";
+			}
+			refreshNumBtns();
+		}
+		
+		//клик по одному из номеров
+		protected function num_btn_clickHandler(event:MouseEvent):void
+		{
+			if (user_tf.text=="xxxx"){
+			user_tf.text="";
+			}
+			user_tf.text+=event.target.label;
+			refreshNumBtns();
+		}
+			
+		//клик по кнопке "спросить"
+		protected function question_btn_clickHandler(event:MouseEvent):void
+		{
+			this.dispatchEvent(new DataEvent(SEND, false,false,user_tf.text));
+			init();
+		}
+			
+		//функция "обновить статус хода игрока" - обновляет статус цифр (доступность) 
+		//и делает доступной кнопку "спросить" если введены 4 цифры в поле
+		public function refreshNumBtns():void
+		{
+			var i:uint;
+			var tmp_btn:Button;
+			if (user_tf.text.length<4){
+				
+				question_btn.enabled=false;
+				
+				if (user_tf.text==""){
+					tmp_btn = num_container.getElementAt(1) as Button;
+					tmp_btn.enabled=false;
+				}
+				
+				for ( i=0; i<num_container.numElements;i++){
+					tmp_btn = num_container.getElementAt(i) as Button;
+					tmp_btn.enabled=true;
+					
+					if (i==0&&user_tf.text==""){
+						tmp_btn.enabled=false;
+					}
+				}
+				
+				for (i=0; i<user_tf.text.length;i++){
+					
+					tmp_btn = num_container.getElementAt(Number(user_tf.text.charAt(i))) as Button;
+					tmp_btn.enabled=false;
+				}
+			}else{
+				question_btn.enabled=true;
+				
+				for ( i=0; i<num_container.numElements;i++){
+					tmp_btn = num_container.getElementAt(i) as Button;
+					tmp_btn.enabled=false;
+				}
+			}
+		}
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:TileGroup id="num_container" y="10" width="179" height="53" horizontalAlign="center"
+				 horizontalCenter="0" textAlign="center" verticalAlign="middle">
+		<s:Button id="num0" width="30" label="0" click="num_btn_clickHandler(event)" enabled="false"
+				  fontSize="13" fontStyle="normal" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num1" width="30" label="1" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num2" width="30" label="2" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num3" width="30" label="3" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num4" width="30" label="4" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num5" width="30" label="5" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num6" width="30" label="6" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num7" width="30" label="7" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num8" width="30" label="8" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		<s:Button id="num9" width="30" label="9" click="num_btn_clickHandler(event)" enabled="false"
+				  fontFamily="Arial" fontWeight="bold" buttonMode="true"/>
+		
+	</s:TileGroup>
+	
+	<s:RichText id="user_tf" fontFamily="Arial" fontSize="36" horizontalCenter="0" text="xxxx"
+				textAlign="center" verticalAlign="middle" verticalCenter="15"/>
+	
+	<s:Button id="clear_btn" width="36" label="&lt;--" click="clear_btn_clickHandler(event)"
+			  horizontalCenter="61" verticalCenter="15" toolTip="Delete last number" buttonMode="true"/>
+	
+	<s:Button id="question_btn" label="Спросить" buttonMode="true"
+			  click="question_btn_clickHandler(event)" horizontalCenter="0" verticalCenter="45"/>
+</s:Group>

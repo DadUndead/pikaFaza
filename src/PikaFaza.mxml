@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+					   xmlns:s="library://ns.adobe.com/flex/spark"
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   xmlns:states="view.states.*"
+					   width="800" height="600" addedToStage="init()"
+					   skinClass="zenSkin">
+	<fx:Metadata>
+		[SWF(width='800', height='600')]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+			import app.AppStatics;
+			import app.PlayerInfo;
+			
+			import mx.controls.Alert;
+			
+			import net.ConnectionClass;
+			
+			Alert.buttonWidth = 150;
+					
+			private function menu_view_init():void{
+				trace("menu_view_init");
+				
+				removeStateListeners();
+				if (PlayerInfo.userName==""){
+					menu_group.init();
+				}else{
+					menu_group.setUserName(PlayerInfo.userName);
+				}
+				
+				menu_group.addEventListener(MenuView.CHANGE_NAME, changeUserName);
+				menu_group.addEventListener(MenuView.LOCAL_GAME, gotoServerPool);
+				menu_group.addEventListener(MenuView.START_NEW_GAME, gotoSoloGame);
+			}
+			
+			private function servers_view_init():void{
+				trace("servers_view_init");
+				removeStateListeners();
+				servers_group.init();
+				servers_group.addEventListener(ServerPoolView.WEB_GAME, gotoWebGame);
+				servers_group.addEventListener(ServerPoolView.MAIN_MENU, gotoMainMenu);
+			}
+			
+			private function solo_game_view_init():void{
+				trace("solo_game_view_init");
+				solo_group.init();
+				removeStateListeners();
+				solo_group.addEventListener(SoloView.EXIT, gotoMainMenu);
+				solo_group.addEventListener(SoloView.SEND, onSend);
+				solo_group.addEventListener(SoloView.SET_NUMBER, onSetNumber);
+			}
+			
+			private function web_game_view_init():void{
+				trace("web_game_view_init");
+				removeStateListeners();
+				multiplay_group.addEventListener(MultiplayView.EXIT, gotoMainMenu);
+				multiplay_group.addEventListener(MultiplayView.SEND, onSend);
+				multiplay_group.addEventListener(MultiplayView.SET_NUMBER, onSetNumber);
+			}
+			
+			private function removeStateListeners():void{
+				if (menu_group){
+					menu_group.removeEventListener(MenuView.CHANGE_NAME, changeUserName);
+					menu_group.removeEventListener(MenuView.LOCAL_GAME, gotoServerPool);
+					menu_group.removeEventListener(MenuView.START_NEW_GAME, gotoSoloGame);
+				}
+				
+				if (servers_group){
+					servers_group.removeEventListener(ServerPoolView.WEB_GAME, gotoWebGame);
+					servers_group.removeEventListener(ServerPoolView.MAIN_MENU, gotoMainMenu);
+				}
+				
+				if (solo_group){
+					solo_group.removeEventListener(SoloView.EXIT, gotoMainMenu);
+					solo_group.removeEventListener(SoloView.SEND, onSend);
+					solo_group.removeEventListener(SoloView.SET_NUMBER, onSetNumber);
+				}
+				
+				if (multiplay_group){
+					multiplay_group.removeEventListener(MultiplayView.EXIT, gotoMainMenu);
+					multiplay_group.removeEventListener(MultiplayView.SEND, onSend);
+					multiplay_group.removeEventListener(MultiplayView.SET_NUMBER, onSetNumber);
+				}
+			}
+			
+			private function changeUserName(e:DataEvent):void{
+				PlayerInfo.userName = e.data;
+			}
+			
+			private function gotoServerPool(e:Event):void{
+				this.currentState = "server_pool";
+			}
+			
+			private function gotoWebGame(e:DataEvent):void{
+				var conn:ConnectionClass = servers_group.connectionClass;
+				this.currentState = "web_game";
+				
+				multiplay_group.init(conn);
+			}
+			
+			private function gotoSoloGame(e:Event):void{
+				this.currentState = "solo_game";
+			}
+			
+			private function gotoMainMenu(e:Event):void{
+				this.currentState = "main_menu";
+			}
+			
+			private function onNewGame(e:DataEvent):void{
+				trace("try to connect to "+e.data);
+			}
+			
+			private function onSend(e:DataEvent):void{
+				trace("try to message "+e.data);
+			}
+			
+			private function onSetNumber(e:DataEvent):void{
+				trace("try to setNumber "+e.data);
+			}
+		]]>
+	</fx:Script>
+	<s:states>
+
+		<s:State id="menu_view" name="main_menu" enterState="menu_view_init()"/>
+		<s:State id="servers_view" name="server_pool" enterState="servers_view_init()"/>
+		<s:State id="solo_game_view" name="solo_game" enterState="solo_game_view_init()"/>
+		<s:State id="web_game_view" name="web_game" enterState="web_game_view_init()"/>
+	</s:states>
+	
+	<s:Group id="main_menu_cont" includeIn="main_menu" width="100%" height="100%"
+			 horizontalCenter="0" verticalCenter="0">
+		<states:MenuView id = "menu_group" horizontalCenter="0" verticalCenter="0"/>
+	</s:Group>
+	
+	<s:Group id="solo_group_cont" includeIn="solo_game" width="100%" height="100%"
+			 horizontalCenter="0" verticalCenter="0">
+		<states:SoloView id = "solo_group" horizontalCenter="0" verticalCenter="0"/>
+	</s:Group>
+	
+	<s:Group id="servers_view_cont" includeIn="server_pool" width="100%" height="100%"
+			 horizontalCenter="0" verticalCenter="0">
+		<states:ServerPoolView id = "servers_group" horizontalCenter="0" verticalCenter="0"/>
+	</s:Group>
+	
+	<s:Group id="web_game_view_cont" includeIn="web_game" width="100%" height="100%"
+			 horizontalCenter="0" verticalCenter="0">
+		<states:MultiplayView id = "multiplay_group" horizontalCenter="0" verticalCenter="0"/>
+	</s:Group>
+</s:WindowedApplication>

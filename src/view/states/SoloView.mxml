@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:components="view.components.*"
+		 width="800" height="600" >
+	<fx:Script>
+		<![CDATA[
+			import app.PlayerInfo;
+			import app.StaticPF;
+			
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			
+			import net.UserObject;
+			public static const SEND:String = "SEND";
+			public static const CHAT_MESSAGE:String = "CHAT_MESSAGE";
+			public static const EXIT:String = "EXIT";
+			public static const SET_NUMBER:String = "SET_NUMBER";
+			
+			private var alert:Alert;
+			private var user:UserObject = new UserObject();
+			private var comp:UserObject = new UserObject();
+			private var game_counter:uint=0;
+						
+			public function init():void{
+								
+				user.name = PlayerInfo.userName;
+				comp.name = "Злой Комп";
+				
+				user_area.userName =user.name;
+				enemy_area.userName=comp.name;
+				
+				num_chooser.question_btn.label="Спросить";
+				stats.init();
+				
+				help_area.visible=false;
+				
+				this.game_counter=0;
+				this.newGame();
+				
+				//your_num.text = "Загадайте число";
+				
+				//num_chooser.addEventListener(NumChooser.SEND, num_chooserYourNumber);
+				
+			}	
+			
+			private function newGame():void{
+				trace("newGame()");
+				this.alert = Alert.show("Загадай 4х значное число, состоящее из цифр от 0 до 9.\rЧисло не может начинаться с 0.\rЦифры не могут повторяться.\rЗатем жми 'OK' "," Новая игра!",
+								Alert.OK,this,onNewGameHandler);
+				
+				your_num.text = "";
+				comp_txt.text = "";
+				counters.init();
+				counters.output_tf.text="xxxx"
+				
+				user_area.clear();
+				enemy_area.clear();
+				num_chooser.init();
+				num_chooser.enabled=false;
+				counters.enabled=false;
+				user_chance.visible=false;
+				comp_chance.visible=false;
+			}
+			
+			private function onNewGameHandler(e:CloseEvent):void{
+				this.num_chooser.addEventListener(NumChooser.SEND, userRequest);
+				this.counters.addEventListener(CountersView.ANSWER, onCountersAnswer);
+				this.game_counter++;
+				user.init();
+				comp.init();
+				comp.number = StaticPF.getRandomNumber(); //комп загадал число
+				comp.enemy_arr = StaticPF.getPerfectArray(); //комп создал массив всех возможных чисел
+				user.enemy_arr = StaticPF.getPerfectArray(); //юзер создал массив всех возможных чисел
+				trace("copm.enemy_arr.length-> "+comp.enemy_arr.length);
+				trace("user.enemy_arr.length-> "+user.enemy_arr.length);
+				
+				
+				help_area.text = StaticPF.traceArrByQuadColumn(user.enemy_arr);
+				help_area.visible=false;
+				
+				user_chance.visible=true;
+				comp_chance.visible=true;
+				user_chance.text ="шанс: "+"1/" +user.enemy_arr.length+" ("+String(100/user.enemy_arr.length).slice(0,4)+"%)";
+				comp_chance.text = "шанс: "+"1/" +comp.enemy_arr.length+" ("+ String(100/comp.enemy_arr.length).slice(0,4)+"%)";
+				
+				
+				Alert.noLabel = comp.name;
+				Alert.yesLabel=user.name;
+				this.alert = Alert.show("Кто будет ходить первым?"," Новая игра!", Alert.YES|Alert.NO,this,onChooseFirstHandler);
+			}
+			
+			private function onChooseFirstHandler(e:CloseEvent):void{
+				Alert.noLabel = "No";
+				Alert.yesLabel="Yes";
+				if (e.detail==Alert.YES){
+					turn("user");
+				}else{
+					turn("comp");
+				}
+			}
+			
+			private function turn(param:String):void{
+				switch (param){
+					case "user":
+						user.turn++;
+						your_num.text = "Твой ход";
+						comp_txt.text = "";
+						num_chooser.enabled=true;
+						counters.enabled=false;
+						//trace(StaticPF.traceArrByQuadColumn(user.enemy_arr));//вывод массива оставшихся чисел
+						
+						break;
+					case "comp":
+						comp.turn++;				
+						your_num.text = "Ходит "+comp.name;		
+						comp_txt.text = "Сколько пик и фаз?";
+						counters.output_tf.text =StaticPF.getRandomInArray(comp.enemy_arr);
+						num_chooser.enabled=false;
+						counters.enabled=true;
+						counters.init();
+						
+						break;
+					default:
+						trace("Error: no such user");
+						break;
+				}
+			}
+			
+			private function userRequest(e:DataEvent):void{
+				var tmp_piks:uint= StaticPF.countPik(e.data, comp.number);
+				var tmp_fazes:uint=StaticPF.countFaz(e.data, comp.number);
+				
+				if (e.data == comp.number){
+					user.completed=true;
+					user_area.push =e.data+" p="+tmp_piks+" f="+tmp_fazes;
+					(comp.completed)?checkWinner():turn("comp");
+					
+				}else{
+					
+					user.enemy_arr = StaticPF.removeElements(user.enemy_arr,e.data, tmp_piks, tmp_fazes);
+					user_chance.text ="шанс: "+"1/" +user.enemy_arr.length+" ("+String(100/user.enemy_arr.length).slice(0,4)+"%)";
+					
+					user_area.push =e.data+" p="+tmp_piks+" f="+tmp_fazes;
+					
+					trace("request> ");
+					
+					help_area.text = StaticPF.traceArrByQuadColumn(user.enemy_arr);
+					
+					(comp.completed)?turn("user"):turn("comp");
+				}
+			}
+			
+			private function onCountersAnswer(e:DataEvent):void{
+				if (counters.piks==4&&counters.fazes==0){
+					comp.completed=true;
+					enemy_area.push =counters.output_tf.text+" p="+counters.piks+" f="+counters.fazes;
+					(user.completed)?checkWinner():turn("user");
+					
+				}else{
+					var tmp_arr:Vector.<String>=new Vector.<String>();
+					for (var i:uint=0; i<comp.enemy_arr.length;i++){
+						tmp_arr.push(comp.enemy_arr[i]);
+					}
+					
+					StaticPF.removeElements(tmp_arr,counters.output_tf.text, counters.piks, counters.fazes);
+					
+					if (tmp_arr.length!=0){
+						comp.enemy_arr = tmp_arr;
+						comp_chance.text = "шанс: "+"1/" +comp.enemy_arr.length+" ("+ String(100/comp.enemy_arr.length).slice(0,4)+"%)";
+						
+						enemy_area.push =counters.output_tf.text+" p="+counters.piks+" f="+counters.fazes;
+						trace("answer> ");
+						(user.completed)?turn("comp"):turn("user");
+					}else{
+						trace("comp.enemy_arr.length = "+comp.enemy_arr.length);
+						counters.impossible_tf.visible=true;
+					}
+				}
+			}
+			
+			private function checkWinner():void{
+				trace("user.turn = "+user.turn);
+				trace("comp.turn = "+comp.turn);
+				trace("");
+				if (user.turn>comp.turn){
+					trace("comp - winner");			
+					comp.score++;
+					this.showAlert(Alert.show("Победитель "+comp.name,"Поражение!", Alert.OK,this));
+					your_num.text = "Поражение!";
+				}else if (user.turn<comp.turn){
+					trace("user - winner");
+					user.score++;
+					this.showAlert(Alert.show("Победитель "+user.name,"Победа!", Alert.OK,this));
+					your_num.text = "Победа!";
+				}else{
+					trace("ничья");					
+					comp.score++;
+					user.score++;
+					this.showAlert(Alert.show("Вы сражались на равных!","Ничья!", Alert.OK,this));
+					your_num.text = "Ничья!";
+				}
+				comp_txt.text = "";
+				num_chooser.enabled=false;
+				counters.enabled=false;
+				stats.gamesCount(this.game_counter);
+				stats.score(user.score, comp.score);				
+
+			}
+			
+			private function setNames(userName:String, enemyName:String):void{
+				
+				user_area.userName = userName;
+				enemy_area.userName = enemyName;
+			}
+
+			
+			
+			private function showAlert(alertShow:Alert):void{
+				if (this.alert!=null){
+					PopUpManager.removePopUp(this.alert);
+				}
+				this.alert = alertShow;		
+			}
+			
+			protected function htlp_btn_clickHandler(event:MouseEvent):void
+			{
+				if (help_area.visible){
+					help_area.visible=false;					
+				}else{
+					help_area.visible=true;
+				}
+			}
+			
+			protected function new_btn_clickHandler(event:MouseEvent):void
+			{				
+				if (!user.completed||!comp.completed){			
+					this.showAlert(Alert.show("Если не доиграешь эту партию, тебе запишут поражение "," Внимание!", Alert.OK|Alert.CANCEL,null,onNewBtnHandler));
+				}else{
+					this.newGame();
+				}
+			}
+			
+			private function onNewBtnHandler(e:CloseEvent):void{
+				if (e.detail == Alert.OK){
+					//предложение принято	
+					comp.score++;
+					stats.gamesCount(this.game_counter);
+					stats.score(user.score, comp.score);
+					this.newGame();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<components:NumChooser id="num_chooser" horizontalCenter="0" verticalCenter="-170" />
+	<components:PlayerArea id="user_area" horizontalCenter="-230" verticalCenter="-80"/>
+	<components:PlayerArea id="enemy_area" horizontalCenter="230" verticalCenter="-80"/>
+	<components:StatisticsComp id="stats" height="140" horizontalCenter="234" verticalCenter="204"/> 
+	<components:CountersView id="counters" horizontalCenter="0" verticalCenter="8"/> 
+	
+	<s:RichText id="your_num" fontSize="21" horizontalCenter="0" text=""
+				textAlign="center" verticalAlign="middle" verticalCenter="-248"/>
+	<s:RichText id="comp_txt" fontSize="21" horizontalCenter="0" text=""
+				textAlign="center" verticalAlign="middle" verticalCenter="-70"/>
+	
+	<s:Button id="exit" label="Выход в меню" 
+			  click="this.dispatchEvent(new Event(EXIT))"
+			  horizontalCenter="290"
+			  verticalCenter="-280"/>
+	<s:Button id="htlp_btn" width="59" height="31" label="Help" click="htlp_btn_clickHandler(event)"
+			  horizontalCenter="-361" verticalCenter="149"/>
+	<s:TextArea id="help_area" visible="true" width="423" height="140" editable="false"
+				horizontalCenter="-112" verticalCenter="204"/>
+	<s:Button id="new_btn" label="Новая партия" click="new_btn_clickHandler(event)" horizontalCenter="175"
+			  verticalCenter="-280" enabled="true"/>
+	<s:RichText id="user_chance" width="189" height="24" fontSize="19" horizontalCenter="-237"
+				text="шанс:" textAlign="left" verticalAlign="middle" verticalCenter="80"/>
+	<s:RichText id="comp_chance" width="189" height="24" fontSize="19" horizontalCenter="225"
+				text="шанс:" textAlign="left" verticalAlign="middle" verticalCenter="80"/>
+</s:Group>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 visible="true" width="250" height="115">
+	
+	<fx:Script>
+		<![CDATA[
+			import app.StaticPF;
+			public static const ANSWER:String = "SEND";
+			
+			private var arrToCheck:Vector.<String>;
+			
+			public function init():void{
+				pik_stepper.value = 0;
+				fase_stepper.value = 0;
+			}
+			
+			private function answerHandler(e:MouseEvent):void{
+					this.dispatchEvent(new DataEvent(ANSWER, false,false, pik_stepper+":"+fase_stepper));					
+			}
+			
+			public function get piks():uint{
+				return uint(pik_stepper.value);
+			}
+			
+			public function get fazes():uint{
+				return uint(fase_stepper.value);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Button id="turn_btn" label="Ответить" buttonMode="true"
+				click="answerHandler(event)" 
+				horizontalCenter="0" verticalCenter="40"/>
+	
+	<s:RichText id="output_tf" fontFamily="Arial" fontSize="36" horizontalCenter="0" text="xxxx"
+				textAlign="center" verticalAlign="middle" verticalCenter="-40"/>
+	
+	<s:RichText id="impossible_tf" color="#FF0404" fontSize="15" horizontalCenter="80"
+				text="вариант&#xd;невозможен" textAlign="left" verticalCenter="40" visible="false"/>
+	
+	<s:HGroup width="174" height="43" horizontalCenter="-1" textAlign="center"
+			  verticalAlign="middle" verticalCenter="0">
+		<s:RichText text="Пики"/>
+		<s:NumericStepper id="pik_stepper" maximum="4" change="impossible_tf.visible=false"/>
+		<s:RichText text="Фазы" textAlign="center" verticalAlign="middle"/>
+		<s:NumericStepper id="fase_stepper" maximum="4" change="impossible_tf.visible=false"/>
+	</s:HGroup>
+	
+</s:Group>

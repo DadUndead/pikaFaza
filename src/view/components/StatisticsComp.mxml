@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="206" height="158">
+	<fx:Script>
+		<![CDATA[
+			
+			public function init():void{
+				points.text ="Счет \r 0:0"
+				num_games.text ="Сыграно партий \r 0"
+			}
+			
+			public function score(user1_score:Number, user2_score:Number):void{
+				points.text = "Счет \r"+user1_score+": "+user2_score;
+			}
+			
+			public function gamesCount(games_count:Number):void{
+				num_games.text = "Сыграно партий \r"+games_count;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:VGroup id="staticsics_cont" width="200" height="152" horizontalCenter="0" verticalCenter="0">
+		
+		<s:RichText id="points" width="196" height="60" fontSize="20" text="Счет 0:0" textAlign="center" verticalAlign="middle"/>
+		<s:RichText id="num_games" width="196" height="60" fontSize="20" text="Сыграно партий 0" textAlign="center" verticalAlign="middle"/>
+	</s:VGroup>
+</s:Group>

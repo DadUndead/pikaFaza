@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+					  xmlns:s="library://ns.adobe.com/flex/spark"
+					  xmlns:mx="library://ns.adobe.com/flex/mx"
+					  width="800" height="600" add="group1_addHandler(event)"
+					  contentBackgroundAlpha="100">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			public static const CHANGE_NAME:String = "CHANGE_NAME";
+			public static const START_NEW_GAME:String = "START_NEW_GAME";
+			public static const LOCAL_GAME:String = "LOCAL_GAME";
+			
+			public function init():void{
+				input_name.text="";
+				enableBtns(false);
+			}
+			
+			private function setName():void{
+				if (input_name.text!=""){
+					this.dispatchEvent(new DataEvent(CHANGE_NAME, false,false,input_name.text));
+					enableBtns(true);
+				}else{
+					enableBtns(false);
+				}
+			}
+			
+			public function setUserName(user_name:String):void{
+				input_name.text = user_name;
+				enableBtns(true);
+			}
+			
+			private function enableBtns(flag:Boolean):void{
+					start_btn.enabled=flag;
+					local_connection_btn.enabled=flag;
+			}
+			
+			private function start_btn_handler(e:Event):void{
+				this.dispatchEvent(new Event(START_NEW_GAME));
+			}
+			
+			private function local_connection_btn_handler(e:Event):void{
+				trace("MenuView: local_btn_handler");
+				this.dispatchEvent(new Event(LOCAL_GAME));
+			}
+			
+			protected function group1_addHandler(event:FlexEvent):void
+			{
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Button id="start_btn" width="120" height="25" label="Одиночная игра" buttonMode="true"
+			  click="start_btn_handler(event)" enabled="false" horizontalCenter="-1"
+			  toolTip="Press to start the Game" verticalCenter="-63"/>
+	
+	<s:Button id="local_connection_btn" width="120" height="25" label="Сетевая игра"
+			  buttonMode="true" click="local_connection_btn_handler(event)" enabled="false"
+			  horizontalCenter="0" toolTip="Press to start or find web servers" verticalCenter="-20"/>
+	
+	<s:TextInput id="input_name" change="setName()" enter="setName()" fontSize="22" fontWeight="normal"
+				 horizontalCenter="0" prompt="Enter your name..."
+				 skinClass="spark.skins.spark.TextInputSkin" verticalCenter="-125"/>
+</s:Group>

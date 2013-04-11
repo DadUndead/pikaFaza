@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="800" height="600" 
+		 xmlns:local="*" 
+		 xmlns:components="view.components.*">
+	<fx:Script>
+		<![CDATA[
+			import app.PlayerInfo;
+			
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			
+			import net.ConnectionClass;
+			public static const SEND:String = "SEND";
+			public static const EXIT:String = "EXIT";
+			public static const SET_NUMBER:String = "SET_NUMBER";
+			
+			private var userName:String;
+			private var enemyName:String;
+			private var client:ConnectionClass;
+			private var games_count:uint=0;
+			
+			private var alert:Alert;
+			
+			public function init(client:ConnectionClass):void{
+				
+				this.userName = PlayerInfo.userName;
+				this.enemyName = PlayerInfo.enemyName;
+				
+				//создание клиентского класса
+				this.client=client;
+				this.client.addEventListener(ConnectionClass.CHAT_MESSAGE, onChatMessage);
+				this.client.addEventListener(ConnectionClass.REQUEST_NEW, onRequestNew);
+				this.client.addEventListener(ConnectionClass.GAME_OVER, onGameOver);
+				
+				chat.clear();
+				chat.addEventListener(ChatComp.SEND_MESSAGE, chatMessageHandler);
+				
+				stats.init();
+				this.newGame();
+			}
+			
+			private function newGame():void{
+				this.client.addEventListener(ConnectionClass.READY_GO, onReadyGo);
+				
+				new_btn.enabled=false;
+				
+				num_chooser.init();
+				num_chooser.enabled=true;
+				num_chooser.question_btn.label= "Загадать";
+				
+				user_area.clear();
+				user_area.userName = userName;
+				
+				enemy_area.clear();
+				enemy_area.userName = enemyName;
+				
+				your_num.text = "Загадайте число";
+				
+				num_chooser.removeEventListener(NumChooser.SEND, num_chooserDataHandler);
+				
+				num_chooser.addEventListener(NumChooser.SEND, num_chooserYourNumber);
+			}
+			
+			private function onGameOver(e:Event):void{
+				this.client.removeEventListener(ConnectionClass.GAME_OVER, onGameOver);
+				this.showAlert(Alert.show("Игра окончена","Соединение разорвано", Alert.OK,null,exit_clickHandler));
+			}
+			
+			private function onReadyGo(e:Event):void{
+				this.client.removeEventListener(ConnectionClass.READY_GO, onReadyGo);
+				this.client.addEventListener(ConnectionClass.TURN, onTurn);
+				this.client.addEventListener(ConnectionClass.COMPLETE, onComplete);
+				this.client.addEventListener(ConnectionClass.WIN, onWin);
+				this.chat.colorSay("System","Числа загаданы! Вперед!","#BF0E00");
+				num_chooser.enabled=true;
+			}
+			
+			private function onWin(e:DataEvent):void{
+				this.client.removeEventListener(ConnectionClass.WIN, onWin);
+				this.client.removeEventListener(ConnectionClass.TURN, onTurn);
+				this.client.removeEventListener(ConnectionClass.COMPLETE, onComplete);
+				
+				var user_score:Number = Number(this.client.score.split(".")[0]);
+				var enemy_score:Number = Number(this.client.score.split(".")[1]);
+				trace("scorrr => "+this.client.score);
+				stats.score(user_score, enemy_score);
+				stats.gamesCount(++this.games_count);
+				
+				if(e.data==this.userName){
+					showAlert(Alert.show("Победитель - "+e.data,"Победа!", Alert.OK,null,onCloseNoticeHandler));
+				}else{
+					showAlert(Alert.show("Победитель - "+e.data,"Поражение!", Alert.OK,null, onCloseNoticeHandler));					
+				}
+				new_btn.enabled=true;
+			}
+			
+			private function onRequestNew(e:DataEvent):void{
+				switch (e.data){
+					case "":
+						showAlert(Alert.show(this.enemyName+"  предлагает начать новую игру","Запрос новой игры", Alert.OK|Alert.CANCEL,null,onCloseRequestHandler));	
+						break;
+					case "accept":
+						this.newGame();
+						PopUpManager.removePopUp(this.alert);
+						break;
+					case "declined":
+						showAlert(Alert.show("Предложение отклонено","Запрос новой игры", Alert.OK));	
+						break;
+				}			
+			}
+			
+			private function onCloseRequestHandler(e:CloseEvent):void{
+				if (e.detail == Alert.OK){
+					//предложение принято
+					this.client.acceptNewGameRequest(true);
+				}else{
+					//предложение отклонено
+					this.client.acceptNewGameRequest(false);
+					
+				}
+			}
+			
+			private function onCloseNoticeHandler(e:Event):void{
+				
+			}
+			
+			private function showAlert(alert:Alert):void{
+				PopUpManager.removePopUp(this.alert);
+				this.alert = alert;				
+			}
+			
+			
+			private function onComplete(e:DataEvent):void{
+				num_chooser.enabled=false;
+			}
+			
+			private function onChatMessage(e:DataEvent):void{
+				if (e.data.split(":")[0]==this.userName){
+					this.chat.colorSay(e.data.split(":")[0],e.data.split(":")[1],"#00792E");
+				}else if (e.data.split(":")[0]==this.enemyName){
+					this.chat.colorSay(e.data.split(":")[0],e.data.split(":")[1],"#1069EE");
+				}else if (e.data.split(":")[0]=="System"){
+					this.chat.colorSay(e.data.split(":")[0],e.data.split(":")[1],"#BF0E00");
+				}
+			}
+			
+			private function num_chooserYourNumber(e:DataEvent):void{
+				//отправляем серверу число, пытаясь угадать
+				num_chooser.enabled=false;
+				this.client.setNumber(e.data);
+				
+				your_num.text = "Ваше число \r"+e.data;
+				num_chooser.question_btn.label= "Спросить";
+				
+				num_chooser.removeEventListener(NumChooser.SEND, num_chooserYourNumber);
+				num_chooser.addEventListener(NumChooser.SEND, num_chooserDataHandler);
+			}
+			
+			private function num_chooserDataHandler(e:DataEvent):void{
+				//отправляем серверу число, пытаясь угадать
+				this.client.setTurn(e.data);
+			}
+			
+			private function onTurn(e:DataEvent):void{
+				if (e.data.split(":")[0]=="user"){
+					setUserTurn = e.data.split(":")[1]
+					num_chooser.enabled=true;
+					num_chooser.init();
+				}else if (e.data.split(":")[0]=="enemy"){
+					setEnemyTurn = e.data.split(":")[1]
+				}
+			}
+			
+			private function chatMessageHandler(e:DataEvent):void{
+				//отправляем сообщение в чат
+				this.client.setChat(e.data);
+				//this.dispatchEvent(new DataEvent(CHAT_MESSAGE,false,false, e.data));
+			}
+			
+			protected function new_btn_clickHandler(event:Event):void{
+				this.client.requestNewGame();
+				showAlert(Alert.show("Ожидаем подтверждения от "+this.enemyName,"Запрос новой игры", Alert.CANCEL,null,onCloseRequestHandler));
+			}
+			
+			protected function exit_clickHandler(event:Event):void
+			{
+				if (this.client.isConnected){
+					this.client.stop();
+				}
+				this.dispatchEvent(new DataEvent(EXIT,false,false, ""));
+			}
+			
+			public function set setEnemyTurn(str:String):void{
+				enemy_area.push = str;
+			}
+			
+			public function set setUserTurn(str:String):void{
+				user_area.push = str;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<components:NumChooser id="num_chooser" horizontalCenter="0" verticalCenter="-80" />
+	<components:PlayerArea id="user_area" horizontalCenter="-230" verticalCenter="-80"/>
+	<components:PlayerArea id="enemy_area" horizontalCenter="230" verticalCenter="-80"/>
+	<components:ChatComp id="chat" horizontalCenter="-155" verticalCenter="150"/>
+	<components:StatisticsComp id="stats" horizontalCenter="233" verticalCenter="153"/> 
+	
+	<s:RichText id="your_num" fontSize="21" horizontalCenter="0" text="Ваше число хххх"
+				textAlign="center" verticalAlign="middle" verticalCenter="-221"/>
+	
+	<s:Button id="exit" label="Выход в меню" click="exit_clickHandler(event)" horizontalCenter="290"
+			  verticalCenter="-280"/>
+	<s:Button id="new_btn" label="Новая партия" click="new_btn_clickHandler(event)" horizontalCenter="175"
+			  verticalCenter="-280" enabled="false"/>
+	
+</s:Group>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="800" height="600">
+	<fx:Script>
+		<![CDATA[
+			import app.PlayerInfo;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+			import net.ConnectionClass;
+			import net.NetInfoClass;
+			import net.ServerClass;
+			import net.ServerParser;
+			
+			public static const WEB_GAME:String = "WEB_GAME";
+			public static const MAIN_MENU:String = "MAIN_MENU";
+			
+			private var serverCollection:ArrayCollection;
+			private var netCollection:ArrayCollection;
+			private var netInfo:NetInfoClass;
+			
+			private var conn:ConnectionClass;
+			private var server:ServerParser;
+			
+			private var alert:Alert;
+			
+			public function init():void{
+				netInfo = new NetInfoClass();
+				serverCollection = new ArrayCollection();
+				netCollection = new ArrayCollection();
+				
+				server_pool.dataProvider = serverCollection;
+				
+				custom_ip.text="";
+				
+				createNetChooser();	
+				
+				conn = new ConnectionClass();
+				connect_btn.enabled=false;
+			}
+			
+			public function get connectionClass():ConnectionClass{
+				return this.conn;
+			}
+			
+			private function createNetChooser():void{
+				net_chooser.enabled=true;
+				for(var i:uint=0; i < netInfo.netCollection.length;i++){
+					if (netInfo.netCollection[i]!=""){
+						var list_tf:TextField = new TextField();
+						list_tf.height=20;
+						list_tf.width=server_pool.width-50;
+						list_tf.text=netInfo.netCollection[i];
+						
+						
+						netCollection.addItem(list_tf.text);
+						net_chooser.dataProvider = netCollection;
+					}
+				}
+				if (netCollection.length>0){
+					net_chooser.selectedItem = netCollection[0];
+					your_ip.text = this.currentIP;
+					start_server_btn.enabled=true;
+				}else{
+					error_message.text = "Отсутствуют сетевые подключения";
+					start_server_btn.enabled=false;
+				}
+			}
+			
+			private function server_pool_changeHandler(e:Event):void{
+				if (server_pool.selectedIndex ==-1){
+					connect_btn.enabled=false;
+				}else{
+					connect_btn.enabled=true;
+				}
+			}
+			
+			private function connect_btn_clickHandler(e:Event):void{
+				//try to conect to server
+				var ip:String = String(server_pool.selectedItem).split(":")[0];
+				var port:String = String(server_pool.selectedItem).split(":")[1];
+				
+				trace("selected -> "+ip+":"+port);
+				
+				this.conn.connectTo(ip, uint(port)); //просто подключаемся к серверу
+				
+				this.conn.addEventListener(ConnectionClass.CONNECTED, onConnectedToServer);
+			}
+			
+			
+			private function onConnectedToServer(e:DataEvent):void{
+				this.conn.tryToConnect(PlayerInfo.userName);//при подключании высылаем запрос на игру
+				this.conn.addEventListener(ConnectionClass.ACCESS, onAccess);
+			}
+			
+			private function onAccess(e:DataEvent):void{
+				if (e.data=="true"){
+					this.dispatchEvent(new DataEvent(WEB_GAME,false,false, ""))
+				}else{
+					showAlert(Alert.show("Сервер отклонил подключение","Ошибка!"));
+					this.init();
+				}
+			}
+			
+			private function back_to_menu_btn_clickHandler(e:Event):void{
+				// stop server
+				/*if (this.server){
+					this.server.stop();
+				}*/
+				//return to menu
+				this.dispatchEvent(new Event(MAIN_MENU))
+			}
+			
+			private function refresh_btn_clickHandler(e:Event):void{
+				//try to refresh
+				conn.refresh();
+				conn.addEventListener(ConnectionClass.CONNECTION_AVIABLE, onAddServerToList);
+				conn.addEventListener(ConnectionClass.SCAN_COMPLETE, onScanComplete);
+			}
+			
+			private function onAddServerToList(e:DataEvent):void{
+				for each (var tf:String in serverCollection){
+					if (tf==e.data){
+						return;
+					}
+				}
+				
+				var list_tf:TextField = new TextField();
+				list_tf.height=20;
+				list_tf.width=server_pool.width-50;
+				list_tf.text=e.data;
+				
+				serverCollection.addItem(list_tf.text);
+				server_pool.dataProvider = serverCollection;
+			}
+			
+			private function onScanComplete(e:DataEvent):void{
+				conn.stopScan();
+				conn.removeEventListener(ConnectionClass.CONNECTION_AVIABLE, onAddServerToList);
+				conn.removeEventListener(ConnectionClass.SCAN_COMPLETE, onScanComplete);
+			}
+			
+			private function custom_ip_changeHandler(e:Event):void{
+				//try to scan custom ip
+				if (custom_ip.text.split(".").length==4){
+					trace("checking");
+					conn.checkIP(custom_ip.text);
+					conn.addEventListener(ConnectionClass.CONNECTION_AVIABLE, onAddServerToList);
+					conn.addEventListener(ConnectionClass.SCAN_COMPLETE, onScanComplete);
+				}
+			}
+			
+			private function start_server_btnHandler(e:Event):void{
+				//start server
+						this.server = new ServerParser(this.currentIP, this.conn._port);
+						this.server.addEventListener(ServerParser.STARTED, onServerStarted);
+						this.server.addEventListener(ServerParser.CLOSE, onServerClose);
+						this.server.addEventListener(ServerParser.ERROR, onServerError);
+						this.server.start();
+			}
+			
+			private function showAlert(alert:Alert):void{
+				PopUpManager.removePopUp(this.alert);
+				this.alert = alert;				
+			}
+			private function onServerStarted(e:DataEvent):void{
+				//переходим на мультиплеp
+				showAlert(Alert.show("Ожидаем подключений пользователей","Сервер запущен: "+"IP: "+this.currentIP+":"+this.conn._port, Alert.CANCEL, this, alertClickHandler));
+				this.server.addEventListener(ServerParser.CLIENT_CONNECTED, onClientConnected);
+			}
+			
+			private function onClientConnected(e:DataEvent):void{
+				//переходим на мультиплеер
+				
+				PopUpManager.removePopUp(this.alert);
+				this.server.removeEventListener(ServerParser.CLIENT_CONNECTED, onClientConnected);
+				removeServerListeners();
+				
+				this.conn.connectTo(this.currentIP, this.conn._port); //просто подключаемся к серверу
+				
+				this.conn.addEventListener(ConnectionClass.CONNECTED, onConnectedToServer);
+				
+				//this.dispatchEvent(new DataEvent(WEB_GAME,false,false,this.currentIP+":"+this.conn._port))
+			}
+			
+			private function onServerClose(e:DataEvent):void{
+				showAlert(Alert.show(e.data,"Сервер закрыт!", Alert.OK));
+				removeServerListeners();
+			}
+			
+			private function onServerError(e:DataEvent):void{
+				showAlert(Alert.show(e.data,"Ошибка!", Alert.OK));
+				removeServerListeners();
+			}
+			
+			private function alertClickHandler(e:Event):void{
+				this.server.stop();
+				removeServerListeners();
+			}
+			
+			private function removeServerListeners():void{
+				if (this.server){
+					this.server.removeEventListener(ServerParser.CLIENT_CONNECTED, onClientConnected);
+					this.server.removeEventListener(ServerParser.STARTED, onServerStarted);
+					this.server.removeEventListener(ServerParser.CLOSE, onServerClose);
+					this.server.removeEventListener(ServerParser.ERROR, onServerError);				
+				}
+			}
+			
+			private function net_chooser_changeHandler(e:Event):void{
+				//change subnet
+				your_ip.text = this.currentIP;
+				start_server_btn.enabled=true;
+			}
+			
+			private function get currentIP():String{
+				return netInfo.getIPByBroadcast(net_chooser.selectedItem);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Group id="server_pool_cont" visible="true" width="550" height="349" horizontalCenter="-1"
+			 verticalCenter="-112">
+		<s:RichText width="374" height="27" fontSize="19" horizontalCenter="0"
+					text="Список доступных серверов" textAlign="center" verticalAlign="middle"
+					verticalCenter="-155"/>	
+		<s:List id="server_pool" width="550" height="250" change="server_pool_changeHandler(event)"
+				horizontalCenter="0" verticalCenter="0"></s:List>
+		
+		<s:Button id="back_to_menu_btn" label="Вернуться"
+				  click="back_to_menu_btn_clickHandler(event)" horizontalCenter="-235"
+				  verticalCenter="155"/>
+		<s:Button id="connect_btn" label="Подключиться" click="connect_btn_clickHandler(event)"
+				  enabled="false" horizontalCenter="225" verticalCenter="155"/>
+		<s:Button id="refresh_btn" label="refresh" click="refresh_btn_clickHandler(event)"
+				  horizontalCenter="-100" verticalCenter="155"/>
+		<s:TextInput id="custom_ip" change="custom_ip_changeHandler(event)" horizontalCenter="64"
+					 verticalCenter="155"/>
+	</s:Group>
+	
+	<s:Group id="server_starter_cont" visible="true" width="550" height="115" horizontalCenter="-1"
+			 verticalCenter="132">
+		<s:Button id="start_server_btn" label="start server" click="start_server_btnHandler(event)"
+				  enabled="false" horizontalCenter="-231" verticalCenter="-1"/>
+		
+		<s:BorderContainer id="brdr" width="200" height="25" horizontalCenter="171"
+						   verticalCenter="1">
+			<s:RichText id="your_ip" fontSize="21" horizontalCenter="0" text="xxx.xxx.xxx.xxx"
+						verticalCenter="0"/>
+		</s:BorderContainer>
+		<s:RichText fontSize="20" horizontalCenter="162" text="Ваш IP:" verticalCenter="-29"/>
+		<s:RichText fontSize="20" horizontalCenter="-43" text="Доступные подсети:"
+					verticalCenter="-30"/>
+		<s:ComboBox id="net_chooser" width="184" change="net_chooser_changeHandler(event)"
+					horizontalCenter="-43" verticalCenter="0" />
+		<s:RichText id="error_message" width="184" height="28" horizontalCenter="-43"
+					verticalCenter="30"/>
+	</s:Group>
+</s:Group>

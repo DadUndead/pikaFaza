@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="214" height="300">
+	<fx:Script>
+		<![CDATA[
+			public var counter:uint = 0;
+			
+			public function set userName(name:String):void{
+				user_name.text=name;
+			}
+				
+			public function set text(str:String):void{
+				user_area.text=str;
+			}
+				
+			public function set push(str:String):void{
+				counter++;
+				user_area.text+=counter+". "+str+"\r\n";
+			}
+				
+			public function clear():void{
+				user_area.text="";
+				counter=0;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:TextArea id="user_area" width="200" height="250" editable="false"
+				fontFamily="Verdana" fontSize="15" fontStyle="normal" fontWeight="normal"
+				horizontalCenter="0" lineThrough="false" textDecoration="none" verticalCenter="0"/>
+	<s:RichText id="user_name" fontSize="18" horizontalCenter="0"
+				text="Игрок:" verticalCenter="-138"/>
+</s:Group>

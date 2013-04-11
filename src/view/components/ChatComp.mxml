@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="368" height="152">
+	<fx:Script>
+		<![CDATA[
+			public static const SEND_MESSAGE:String = "SEND_MESSAGE";
+			
+			public function clear():void{
+				chat_area.text="";
+				input_chat.text="";
+			}
+			
+			public function say(user_name:String, str:String):void{
+				chat_area.text +=user_name+": "+str+"\r";
+				chat_area.validateNow();
+				chat_area.verticalScrollPosition  = chat_area.maxVerticalScrollPosition;
+			}
+			
+			public function colorSay(user_name:String, str:String, color:String):void{
+				chat_area.htmlText +="<font color =\'"+color+"\'>"+ user_name+": "+str+"</font>";
+				trace("-->"+chat_area.htmlText);
+				chat_area.validateNow();
+				chat_area.verticalScrollPosition  = chat_area.maxVerticalScrollPosition;
+			}
+			
+			
+			public function message(str:String):void{
+				chat_area.text +=str+"\r";
+				chat_area.validateNow();
+				chat_area.verticalScrollPosition  = chat_area.maxVerticalScrollPosition;
+			}
+			
+			//клик по кнопке "отправить"
+			protected function send_message_clickHandler(event:MouseEvent):void
+			{
+			}
+			
+			protected function send():void{
+				
+				this.dispatchEvent(new DataEvent(SEND_MESSAGE, false,false,input_chat.text));
+				input_chat.text="";
+				chat_area.validateNow();
+				chat_area.verticalScrollPosition  = chat_area.maxVerticalScrollPosition;
+			}
+		]]>
+	</fx:Script>
+	<mx:TextArea id="chat_area" width="310" height="100" editable="false" fontFamily="Verdana"
+				 fontSize="15" horizontalCenter="-28" verticalCenter="-16"/>
+	<s:TextInput id="input_chat" width="310" horizontalCenter="-28" verticalCenter="55" enter = "send()"/>
+	<s:Button id="send_message" width="50" label="send" click= "send()"
+			  horizontalCenter="157" verticalCenter="55"/>
+</s:Group>

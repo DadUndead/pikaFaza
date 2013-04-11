@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<fxpProperties abbreviated="false" authoringTool="Flex Builder" compiles="true" parentProject="2ac60ba1-3459-4a25-9006-be779d23e181" projectUUID="2ac60ba1-3459-4a25-9006-be779d23e181" pureCatalystProject="false" sdkVersion="4.5.0" uuid="67277e8d-1b4a-4518-98e4-c1f0005ad1dc" version="15">
+  <projects/>
+  <src/>
+  <swc>
+    <linked location="sdkPlaceHolder" path="sdkPlaceHolder" position="0" uuid="67277e8d-1b4a-4518-98e4-c1f0005ad1dc"/>
+    <linked location="C:/Users/ralic_000/Adobe Flash Builder 4.6/PikaFaza/libs" path="/libs" position="1" uuid="859e1379-9f18-4e83-88b5-1d44f4969f82"/>
+  </swc>
+  <misc/>
+  <theme/>
+  <mxmlFormattingPrefs groupAttributesByState="true" maxLineWidth="100" mxmlAlignAttributes="true" mxmlAttributeOrder="id,userLabel,includeIn,excludeFrom,visible,x,y,z,left,right,top,bottom,width,height,minWidth,minHeight,maxWidth,maxHeight,label" mxmlKeepAttributeValuesOrganized="true"/>
+</fxpProperties>
